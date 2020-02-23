@@ -87,7 +87,7 @@ func getSnippet(s object.Step) string {
 
 func (c *Container) Run(scenario object.Scenario, background *object.Background) error {
 	steps := []object.Step{}
-	if background.Steps != nil {
+	if background != nil && len(background.Steps) > 0 {
 		for _, step := range background.Steps {
 			steps = append(steps, step)
 		}
