@@ -26,6 +26,25 @@ func (s *StepDef) Match(step object.Step) bool {
 	}
 
 	if step.StepText == s.Pattern {
+		dataLen := len(step.Data)
+		if step.Table != nil {
+			dataLen += 1
+		}
+		if dataLen != s.Action.Type().NumIn() {
+			return false
+		}
+
+		for i, val := range step.Data {
+			if s.Action.Type().In(i) != reflect.TypeOf(val) {
+				return false
+			}
+		}
+
+		if step.Table != nil {
+			if s.Action.Type().In(len(step.Data)) != reflect.TypeOf(step.Table) {
+				return false
+			}
+		}
 		return true
 	}
 	return false

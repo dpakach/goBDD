@@ -22,7 +22,7 @@ func main() {
 		fmt.Println(table.GetHash())
 	})
 
-	s.When("I do something", func(table object.Table) {
+	s.When("I do {{s}} something", func(s string, table object.Table) {
 		fmt.Println("I do something")
 		fmt.Println(table)
 	})
@@ -31,13 +31,15 @@ func main() {
 		fmt.Println("I do something")
 	})
 
-	s.When("i do something {{s}}", func(task string) {
+	s.When("i do something {{s}}", func(task string, o object.Table) {
 		fmt.Println(task)
 		fmt.Printf("I am doing %v task\n", task)
+		fmt.Println(o)
 	})
 
-	s.Then("something {{s}} happens", func(res string) {
+	s.Then("something {{s}} happens", func(res string, tab object.Table) {
 		fmt.Printf("%v is happening\n", res)
+		fmt.Println(tab)
 	})
 	runner.Run(s)
 }
