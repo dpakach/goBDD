@@ -65,12 +65,20 @@ func (s *StepDef) Run(args ...interface{}) error {
 }
 
 type Suite struct {
-	steps []*StepDef
+	steps          []*StepDef
+	beforeSuite    []reflect.Value
+	afterSuite     []reflect.Value
+	beforeScenario []reflect.Value
+	afterScenario  []reflect.Value
 }
 
 func NewSuite() *Suite {
 	return &Suite{
 		[]*StepDef{},
+		[]reflect.Value{},
+		[]reflect.Value{},
+		[]reflect.Value{},
+		[]reflect.Value{},
 	}
 }
 
@@ -86,6 +94,31 @@ func (s *Suite) Then(pattern string, action interface{}) {
 	s.AddStep(token.THEN, pattern, action)
 }
 
+func verifyReflectFunction(action interface{}) reflect.Value {
+	v := reflect.ValueOf(action)
+	typ := v.Type()
+	if typ.Kind() != reflect.Func {
+		panic(fmt.Sprintf("expected handler to be func, but got: %T", action))
+	}
+	return v
+}
+
+func (s *Suite) BeforeSuite(action interface{}) {
+	s.beforeSuite = append(s.beforeSuite, verifyReflectFunction(action))
+}
+
+func (s *Suite) AfterSuite(action interface{}) {
+	s.afterSuite = append(s.afterSuite, verifyReflectFunction(action))
+}
+
+func (s *Suite) BeforeScenario(action interface{}) {
+	s.beforeScenario = append(s.beforeScenario, verifyReflectFunction(action))
+}
+
+func (s *Suite) AfterScenario(action interface{}) {
+	s.afterScenario = append(s.afterScenario, verifyReflectFunction(action))
+}
+
 func (s *Suite) RunFeature(input string) {
 	l := lexer.New(input)
 	p := parser.New(l)
@@ -96,6 +129,9 @@ func (s *Suite) RunFeature(input string) {
 func (s *Suite) Run(res *object.FeatureSet) {
 	var background *object.Background
 	fail := false
+	for _, action := range s.beforeSuite {
+		action.Call([]reflect.Value{})
+	}
 	for _, feat := range res.Features {
 		if feat.Background != nil {
 			background = feat.Background
@@ -103,13 +139,22 @@ func (s *Suite) Run(res *object.FeatureSet) {
 
 		for _, scenario := range feat.Scenarios {
 			for _, sc := range scenario.GetScenarios() {
+				for _, action := range s.beforeScenario {
+					action.Call([]reflect.Value{})
+				}
 				err := s.RunScenario(sc, background)
 				if err != nil {
 					fail = true
 					break
 				}
+				for _, action := range s.afterScenario {
+					action.Call([]reflect.Value{})
+				}
 			}
 		}
+	}
+	for _, action := range s.afterSuite {
+		action.Call([]reflect.Value{})
 	}
 
 	if fail {
